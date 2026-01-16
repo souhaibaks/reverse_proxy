@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -27,5 +28,6 @@ func main() {
 		lb: serverPool,
 	}
 
-	http.ListenAndServe(":8080", handler)
+	fmt.Println("Running on :9000")
+	log.Fatal(http.ListenAndServe(":9000", handler))
 }
