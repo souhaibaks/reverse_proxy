@@ -1,35 +1,38 @@
-package reverse_proxy
+package main
 
 import (
+	"fmt"
+	"net/url"
 	"sync"
 	"sync/atomic"
-	"net/url"
 )
 
 type ServerPool struct {
 	Backends []*Backend `json:"backends"`
 	Current  uint64     `json:"current"` // Used for Round-Robin
-	mux          sync.RWMutex
+	mux      sync.RWMutex
 }
-
+/*	GetNextValidPeer() *Backend
+	AddBackend(backend *Backend)
+	SetBackendStatus(uri *url.URL, alive bool)*/
 
 func (sp *ServerPool) GetNextValidPeer() *Backend {
 	sp.mux.Lock()
-	if len(sp.Backends)==0{
+	if len(sp.Backends) == 0 {
 		return nil
 	}
-	rrindex:=atomic.AddUint64(&sp.Current,1)%uint64(len(sp.Backends))
+	rrindex := atomic.AddUint64(&sp.Current, 1) % uint64(len(sp.Backends))
 
-	for i:=rrindex;i<uint64(len(sp.Backends));i++{
-			backend:=sp.Backends[i]
-			backend.mux.Lock()
-			if backend.Alive{
-				return backend
-			}
-			backend.mux.Unlock()
+	for i := rrindex; i < uint64(len(sp.Backends)); i++ {
+		backend := sp.Backends[i]
+		backend.mux.Lock()
+		defer backend.mux.Unlock()
+		if backend.Alive {
+			return backend
+		}
 
 	}
-
+	fmt.Println("No Server Available") //for now no error handling
 	return nil
 }
 func (sp *ServerPool) AddBackend(backend *Backend) {

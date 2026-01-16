@@ -1,4 +1,4 @@
-package reverse_proxy
+package main
 import (
 	"sync"
 	"net/url"
