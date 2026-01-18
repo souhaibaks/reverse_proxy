@@ -6,13 +6,13 @@ import (
 
 func (sp *ServerPool) HealthCheck() {
 	for _, b := range sp.Backends {
-		status := "up"
+		status := "UP"
 		alive:=b.GetRealStatus()
 		b.SetAlive(alive)
 		if !b.GetRealStatus() {
-			status = "down"
+			status = "DOWN"
 		}
-		log.Printf("%s [%s]", b.URL, status)
+		log.Printf("%s is %s", b.URL, status)
 
 	}
 }
