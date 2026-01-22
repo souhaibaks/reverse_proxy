@@ -29,14 +29,16 @@ func main() {
 	handler := &ProxyHandler{
 		lb: serverPool,
 	}
-	config:=&ProxyConfig{
-		HealthCheckFreq: 30*time.Second,
+	config := &ProxyConfig{
+		HealthCheckFreq: 30 * time.Second,
 	}
 
 	fmt.Println("Running on :9000")
+	go StartAdminServer(serverPool)
+
 	go func() {
 		t := time.NewTicker(config.HealthCheckFreq) //interval
-		for range t.C { //using a channel to perform health checks
+		for range t.C {                             //using a channel to perform health checks
 			log.Println("Starting health check ...")
 			serverPool.HealthCheck()
 			log.Println("Health Check completed")

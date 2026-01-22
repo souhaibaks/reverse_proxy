@@ -64,3 +64,14 @@ func (sp *ServerPool) SetBackendStatus(uri *url.URL, alive bool) {
 	sp.mux.Unlock()
 
 }
+func (sp *ServerPool) RemoveBackend(backendURL *url.URL) {
+	sp.mux.Lock()
+	defer sp.mux.Unlock()
+	sli := sp.Backends
+	for i, v := range sli {
+		if v.URL.String() == backendURL.String() {
+			sp.Backends = append(sli[:i], sli[i+1:]...)
+			return
+		}
+	}
+}
