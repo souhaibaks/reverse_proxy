@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"net/url"
 	"sync"
 	"sync/atomic"
@@ -24,20 +25,38 @@ func (sp *ServerPool) GetNextValidPeer() *Backend {
 	if len(sp.Backends) == 0 {
 		return nil
 	}
+	//ROUND_ROBIN
+	switch proxyConfig.Strategy {
+	case "round-robin":
+		fmt.Println("Getting server using Round Robin method ")
+		rrindex := atomic.AddUint64(&sp.Current, 1) % uint64(len(sp.Backends))
 
-	rrindex := atomic.AddUint64(&sp.Current, 1) % uint64(len(sp.Backends))
+		for i := 0; i < len(sp.Backends); i++ {
+			idx := (rrindex + uint64(i)) % uint64(len(sp.Backends))
+			backend := sp.Backends[idx]
 
-	for i := 0; i < len(sp.Backends); i++ {
-		idx := (rrindex + uint64(i)) % uint64(len(sp.Backends))
-		backend := sp.Backends[idx]
+			backend.mux.RLock()
+			alive := backend.Alive
+			backend.mux.RUnlock()
 
-		backend.mux.RLock()
-		alive := backend.Alive
-		backend.mux.RUnlock()
-
-		if alive {
-			return backend
+			if alive {
+				return backend
+			}
 		}
+	case "least-conn":
+		fmt.Println("Getting server using Least Connection method ")
+		var idx uint64
+		min := int64(math.MaxInt64)
+		for i := 0; i < len(sp.Backends); i++ {
+			if sp.Backends[i].CurrentConns < min && sp.Backends[i].Alive {
+				sp.Backends[i].mux.RLock()
+				defer sp.Backends[i].mux.RUnlock()
+				idx = uint64(i)
+				min = sp.Backends[i].CurrentConns
+			}
+		}
+		return sp.Backends[idx]
+
 	}
 
 	fmt.Println("No Server Available")
