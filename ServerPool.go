@@ -45,17 +45,23 @@ func (sp *ServerPool) GetNextValidPeer() *Backend {
 		}
 	case "least-conn":
 		fmt.Println("Getting server using Least Connection method ")
-		var idx uint64
+		var bestIdx int = -1
 		min := int64(math.MaxInt64)
 		for i := 0; i < len(sp.Backends); i++ {
-			if sp.Backends[i].CurrentConns < min && sp.Backends[i].Alive {
-				sp.Backends[i].mux.RLock()
-				defer sp.Backends[i].mux.RUnlock()
-				idx = uint64(i)
-				min = sp.Backends[i].CurrentConns
+			b := sp.Backends[i]
+			b.mux.RLock()
+			conns := b.CurrentConns
+			alive := b.Alive
+			b.mux.RUnlock() // explicit unlock — never use defer inside a loop
+			if alive && conns < min {
+				bestIdx = i
+				min = conns
 			}
 		}
-		return sp.Backends[idx]
+		if bestIdx == -1 {
+			return nil
+		}
+		return sp.Backends[bestIdx]
 
 	}
 
@@ -71,17 +77,15 @@ func (sp *ServerPool) AddBackend(backend *Backend) {
 }
 func (sp *ServerPool) SetBackendStatus(uri *url.URL, alive bool) {
 	sp.mux.Lock()
+	defer sp.mux.Unlock() // always unlock, even on early return
 	for _, backend := range sp.Backends {
-		if backend.URL == uri {
+		if backend.URL.String() == uri.String() {
 			backend.mux.Lock()
 			backend.Alive = alive
 			backend.mux.Unlock()
 			return
 		}
-
 	}
-	sp.mux.Unlock()
-
 }
 func (sp *ServerPool) RemoveBackend(backendURL *url.URL) {
 	sp.mux.Lock()

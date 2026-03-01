@@ -1,0 +1,10 @@
+{
+  "port": 9000,
+  "strategy": "round-robin",
+  "health_check_frequency": 30000000000,
+  "backends": [
+    "http://localhost:9001",
+    "http://localhost:9002",
+    "http://localhost:9003"
+  ]
+}
